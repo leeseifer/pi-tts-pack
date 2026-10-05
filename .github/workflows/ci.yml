@@ -1,0 +1,39 @@
+name: Check PI TTS Pack
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  setup-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: bash -n install.sh deploy.sh
+      - run: python -m unittest discover -s tests -v
+      - name: Check source syntax
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for directory in ['app', 'scripts', 'n8n']:
+              for path in Path(directory).rglob('*.py'):
+                  ast.parse(path.read_text(), filename=str(path))
+          PY
+  arm64-one-command-install:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Install as a new user would
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --dir "$RUNNER_TEMP/pi-tts-pack" --https-port 0
+      - name: Confirm boot service and zero personal clones
+        run: |
+          systemctl is-active pi-tts-pack
+          curl -fsS http://127.0.0.1:5050/api/clones | python3 -c 'import json,sys; assert json.load(sys.stdin)["clones"] == []'
+      - name: Collect service log
+        if: always()
+        run: sudo journalctl -u pi-tts-pack --no-pager -n 100

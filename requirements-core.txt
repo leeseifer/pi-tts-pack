@@ -1,0 +1,10 @@
+# Core engines and API, constrained to the source Pi's working versions.
+-c requirements-pi5-constraints.txt
+piper-tts==1.8.0
+faster-whisper==1.2.1
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+mcp==2.2.0
+httpx==0.28.1
+yt-dlp==2026.8.19

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pi-tts-pack": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://PI_IP:5050/mcp", "--allow-http"]
+    }
+  }
+}

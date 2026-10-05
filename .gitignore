@@ -1,0 +1,29 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+clones/*
+!clones/.gitkeep
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+tls/*
+!tls/.gitkeep
+samples/clone-*
+n8n/voice-chat.workflow.json
+n8n/voice-chat.test.workflow.json
+# Model assets are fetched from upstream instead of stored in the public Git repo.
+models/**
+!models/.gitkeep
+voices/**
+!voices/.gitkeep
+samples/**
+!samples/.gitkeep
+# Local extraction evidence is kept on this computer, outside public history.
+MANIFEST.sha256
+MODEL_SYMLINKS.json
+PACK_INFO.json
+docs/CLEANUP.md
+.DS_Store
+*.log

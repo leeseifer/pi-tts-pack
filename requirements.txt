@@ -1,0 +1,14 @@
+piper-tts>=1.8
+faster-whisper>=1.2
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart
+mcp>=2.2
+httpx
+yt-dlp
+
+# Extra voice engines (an engine whose package or model is missing is simply hidden)
+vieneu>=3.8
+pocket-tts
+kokoro-onnx==0.6.1
+supertonic>=1.3
