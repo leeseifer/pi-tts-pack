@@ -335,8 +335,7 @@ dialog::backdrop { background: rgba(10,12,20,.45); backdrop-filter: blur(2px); }
         <h2><span class="step">2</span> Voice</h2>
         <div class="voice-tools">
           <select id="kindFilter" aria-label="Filter by type">
-            <option value="">All types</option><option value="clone">🧬 My clones</option>
-            <option value="piper">Piper</option><option value="kokoro">Kokoro presets (narration)</option><option value="supertonic">Supertonic presets</option><option value="vieneu">VieNeu presets</option><option value="pocket">Pocket TTS presets</option>
+            <option value="">All types</option>
           </select>
           <select id="langFilter" aria-label="Filter by language"></select>
           <input type="search" id="voiceSearch" placeholder="Search voices…" aria-label="Search voices">
@@ -620,7 +619,7 @@ async function loadVoices() {
   const data = await api("/api/voices");
   S.voices = data.voices;
   if (!S.voices.find((v) => v.id === S.voice)) S.voice = data.default;
-  renderLangFilter(); renderVoices(); renderSpeaker(); updateTuneForVoice();
+  renderKindFilter(); renderLangFilter(); renderVoices(); renderSpeaker(); updateTuneForVoice();
 }
 function renderLangFilter() {
   const sel = $("#langFilter"), keep = sel.value || store.get("langFilter", "");
@@ -632,6 +631,19 @@ function renderLangFilter() {
 }
 const ENGINE_LABEL = { piper: "Piper", vieneu: "VieNeu", pocket: "Pocket TTS", kokoro: "Kokoro", supertonic: "Supertonic" };
 function voiceKind(v) { return v.kind === "clone" ? "clone" : v.engine || "piper"; }
+function renderKindFilter() {
+  const sel = $("#kindFilter"), keep = sel.value;
+  const counts = {};
+  S.voices.forEach((v) => { const kind = voiceKind(v); counts[kind] = (counts[kind] || 0) + 1; });
+  sel.innerHTML = `<option value="">All types (${S.voices.length})</option>` +
+    ["clone", "piper", "vieneu", "kokoro", "supertonic", "pocket"].filter((kind) => counts[kind]).map((kind) =>
+      `<option value="${kind}">${kind === "clone" ? "🧬 My clones" : ENGINE_LABEL[kind]} (${counts[kind]})</option>`).join("");
+  sel.value = counts[keep] ? keep : "";
+}
+function resetVoiceFilters() {
+  $("#kindFilter").value = ""; $("#langFilter").value = ""; $("#voiceSearch").value = "";
+  store.set("langFilter", ""); renderVoices();
+}
 function renderVoices() {
   const q = $("#voiceSearch").value.trim().toLowerCase(), lang = $("#langFilter").value, kind = $("#kindFilter").value;
   const list = S.voices.filter((v) => (!lang || v.language === lang) && (!kind || voiceKind(v) === kind) &&
@@ -653,7 +665,9 @@ function renderVoices() {
         <span class="badges">${badges(v)}</span>
         <button class="play" data-play="${esc(v.id)}" aria-label="Preview ${esc(v.name)}">${ICON_PLAY}</button>
       </div>`).join("")}</div></div>`).join("");
-  $("#voiceList").innerHTML = html || `<div class="empty">No voices match. <button class="link" onclick="openCatalog()">Install more voices</button> or <button class="link" onclick="openClone()">clone one</button>.</div>`;
+  $("#voiceList").innerHTML = html || (S.voices.length
+    ? `<div class="empty">No voices match these filters. <button class="link" onclick="resetVoiceFilters()">Show all voices</button>.</div>`
+    : `<div class="empty">No voices installed yet. Complete setup or <button class="link" onclick="openCatalog()">install a voice</button>.</div>`);
 }
 function selectVoice(id) {
   if (S.voice !== id) { S.speaker = ""; store.set("speaker", ""); }

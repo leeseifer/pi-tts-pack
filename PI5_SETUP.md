@@ -10,11 +10,11 @@ On your Pi 5, use a 64-bit Raspberry Pi OS/Debian/Ubuntu installation with inter
 curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash
 ```
 
-The installer handles system packages, the Python environment, starter English/Vietnamese voices, Whisper base/small, settings, and the `pi-tts-pack` boot service. It then generates actual speech and checks MCP discovery. It never stops the old `piper-studio` service. Default ports are 5050 and 5443; occupied defaults are moved to available alternatives and printed at the end.
+The installer handles system packages, the Python environment, **21 Piper voices, Vietnamese VieNeu presets, UK/US Kokoro presets**, Whisper base/small, settings, and the `pi-tts-pack` boot service. It downloads the default voice models during installation, then generates actual Vietnamese and British/American English speech and checks MCP discovery. Default ports are 5050 and 5443; occupied defaults are moved to available alternatives and printed at the end.
 
 The reference Pi uses Bookworm/Python 3.11. Current Raspberry Pi OS releases can use a newer Python; the installer accepts 3.11–3.13. Use 64-bit OS, not 32-bit. [Raspberry Pi OS documentation](https://www.raspberrypi.com/documentation/computers/os.html).
 
-Allow approximately 3 GB free for a starter install, with additional space for recordings. Optional engines and extra voices need several more GB; 12–15 GB free is a practical allowance for those. Cooling and enough RAM for the engines you load help with sustained use.
+Allow 10–12 GB free for installation and download workspace, plus space for your recordings. The smaller `--minimal` install needs approximately 3 GB. Extra engines need additional space. Cooling and enough RAM for the engines you load help with sustained use.
 
 ## Use
 
@@ -31,11 +31,11 @@ The MCP server runs on the Pi. Once installation is complete, use the separate [
 Run these on the Pi too. Append flags after `bash -s --`. Each example is still one command.
 
 ```bash
-# Optional voice engines; the first use may download their models.
+# Add Pocket and Supertonic; Pocket models may download on first use.
 curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --full
 
-# Download 21 catalog voices in addition to preparing transcription.
-curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --all-voices
+# Smaller download: two Piper voices + Whisper, without the extra voice engines.
+curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --minimal
 
 # Choose ports yourself; HTTPS 0 disables that listener.
 curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --http-port 5051 --https-port 5444
@@ -46,7 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.
 
 The default directory is `~/pi-tts-pack`. `--dir /absolute/path` selects another empty directory. An existing unrelated directory is rejected. Rerunning the installer updates an unmodified Git checkout and preserves `.env`, clones, uploaded media, outputs, and models. Local code edits are retained and cause an update to stop instead of overwriting them.
 
-`--full` uses a CPU PyTorch build for optional engines. Pocket's upstream documentation explains its [CPU-only install](https://huggingface.co/kyutai/pocket-tts#cpu-only-installation). Optional-engine model access is configured with your own account; no source account credentials are distributed.
+The default voice pack uses a CPU PyTorch build. `--full` adds Pocket and Supertonic; Supertonic models are also prepared during setup. Pocket's upstream documentation explains its [CPU-only install](https://huggingface.co/kyutai/pocket-tts#cpu-only-installation). Optional-engine model access is configured with your own account; no source account credentials are distributed. `--all-voices` is still accepted, but all 21 Piper voices are already included by default.
 
 ## Settings and service
 
@@ -85,7 +85,8 @@ sudo systemctl disable --now pi-tts-pack
 | Package download fails | Check internet and free disk space; rerun the installer. |
 | Destination already exists | Choose an empty directory with `--dir`. |
 | Service cannot start | Read `journalctl -u pi-tts-pack -n 80`; check configured ports. |
-| Voice needs a missing model | Use the UI catalog or the relevant optional-engine first-use download. |
+| No voices appear | Rerun the installer to complete model downloads; reset language/type/search filters. Default models must finish downloading before setup prints Ready. |
+| Want additional voices | Use **+ More voices** for the upstream Piper catalog, or install the additional engines with `--full`. |
 | Claude cannot see tools | Check the exact printed MCP port and follow [CLAUDE_MCP.md](CLAUDE_MCP.md). |
 | API returns 401 | Supply your new API key if enabled. |
 | Microphone is blocked | Use HTTPS and allow microphone access. |

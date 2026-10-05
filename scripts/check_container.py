@@ -11,6 +11,7 @@ import urllib.parse
 import wave
 from pathlib import Path
 from check_service import request, rpc_json
+from download_models import ALL_VOICES
 
 
 def wav_info(data):
@@ -30,8 +31,24 @@ def check(base, output):
     assert health['ok'] and health['voices'] >= 2
     assert b'PI TTS Pack' in request(base, '/', headers=headers)[0]
     voices = json.loads(request(base, '/api/voices', headers=headers)[0])['voices']
-    assert {'en_US-lessac-medium', 'vi_VN-vais1000-medium'} <= {voice['id'] for voice in voices}
+    installed = {voice['id'] for voice in voices}
+    assert {'en_US-lessac-medium', 'vi_VN-vais1000-medium'} <= installed
+    complete_pack = os.environ.get('PI_TTS_ALL_VOICES', '1') == '1'
+    presets = os.environ.get('PI_TTS_VOICE_PACK', '1') == '1' or os.environ.get('PI_TTS_PACK_FULL') == '1'
+    if complete_pack:
+        assert set(ALL_VOICES) <= installed, f'Missing default voices: {set(ALL_VOICES) - installed}'
+    if presets:
+        assert {'vieneu-doan_trang', 'kokoro-bf_emma', 'kokoro-am_michael'} <= installed, 'Default preset pack is missing'
     clones = json.loads(request(base, '/api/clones', headers=headers)[0])['clones']
+    pack_audio = {}
+    if complete_pack:
+        examples = {'de': 'Hallo, dies ist ein Sprachtest.', 'en': 'Hello, this voice is ready to use.',
+                    'es': 'Hola, esta voz está lista.', 'fr': 'Bonjour, cette voix est prête.',
+                    'vi': 'Xin chào, giọng nói này đã sẵn sàng.', 'zh': '你好，这是语音测试。'}
+        for voice in ALL_VOICES:
+            data = request(base, '/api/tts', {'text': examples[voice[:2]], 'voice': voice, 'format': 'wav'}, headers)[0]
+            (output / f'{voice}.wav').write_bytes(data)
+            pack_audio[voice] = wav_info(data)
     audio_results = {}
     for language, voice, text in [
         ('english', 'en_US-lessac-medium', 'Hello. This is a test of speech generation inside a Linux container.'),
@@ -40,6 +57,15 @@ def check(base, output):
         data = request(base, '/api/tts', {'text': text, 'voice': voice, 'format': 'wav'}, headers)[0]
         (output / f'{language}.wav').write_bytes(data)
         audio_results[language] = wav_info(data)
+    if presets:
+        for label, voice, text in [
+            ('vieneu-vietnamese', 'vieneu-doan_trang', 'Xin chào! Bộ công cụ tạo giọng nói đã sẵn sàng.'),
+            ('kokoro-uk', 'kokoro-bf_emma', 'Hello, this is the British English voice pack.'),
+            ('kokoro-us', 'kokoro-am_michael', 'Hello, this is the American English voice pack.'),
+        ]:
+            data = request(base, '/api/tts', {'text': text, 'voice': voice, 'format': 'wav'}, headers)[0]
+            (output / f'{label}.wav').write_bytes(data)
+            audio_results[label] = wav_info(data)
     mp3 = request(base, '/api/tts', {'text': 'PI TTS Pack creates MP3 files.',
                                     'voice': 'en_US-lessac-medium', 'format': 'mp3'}, headers)[0]
     (output / 'english.mp3').write_bytes(mp3)
@@ -82,6 +108,11 @@ def check(base, output):
     assert {'list_voices', 'text_to_speech', 'transcribe', 'speech_to_speech'} <= {tool['name'] for tool in tools}
     listed = call('list_voices', {'language': 'vi'})
     assert listed['count'] >= 1
+    if presets:
+        assert 'vieneu-doan_trang' in {voice['id'] for voice in listed['voices']}
+        preset_speech = call('text_to_speech', {'text': 'British English is ready through MCP.',
+                             'voice': 'kokoro-bf_emma', 'format': 'wav'})
+        audio_results['mcp-kokoro-uk'] = fetch_audio(preset_speech, 'mcp-kokoro-uk.wav')
     speech = call('text_to_speech', {'text': 'Hello from the MCP server. This is a test of speech generation inside a Linux container.',
                    'voice': 'en_US-lessac-medium', 'format': 'wav'})
     audio_results['mcp'] = fetch_audio(speech, 'mcp-speech.wav')
@@ -95,6 +126,9 @@ def check(base, output):
     report = {'status': 'passed', 'platform': f'{platform.system()}/{platform.machine()}',
               'python': platform.python_version(), 'version': health['version'], 'web_ui': 'passed',
               'voices': len(voices), 'personal_clones': len(clones), 'audio_seconds': audio_results,
+              'voice_engines': {engine: sum(v.get('engine', 'piper') == engine for v in voices)
+                               for engine in sorted({v.get('engine', 'piper') for v in voices})},
+              'piper_pack_audio_seconds': pack_audio,
               'mp3': 'passed', 'mcp_server': result['serverInfo']['name'], 'mcp_tools': len(tools),
               'transcription': transcript['text'], 'voice_changing': 'passed',
               'host_audio_url': speech['url'], 'history_id': speech['id']}

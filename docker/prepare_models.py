@@ -8,7 +8,8 @@ from scripts.download_models import download
 root = Path(os.environ.get('PIPER_HOME', '/data'))
 full = os.environ.get('PI_TTS_PACK_FULL', '0') == '1'
 print('Preparing PI TTS Pack models in', root, flush=True)
-download(root, all_voices=os.environ.get('PI_TTS_ALL_VOICES', '0') == '1', whisper=False, full=full)
+download(root, all_voices=os.environ.get('PI_TTS_ALL_VOICES', '1') == '1', whisper=False, full=full,
+         voice_pack=os.environ.get('PI_TTS_VOICE_PACK', '1') == '1')
 for model in ['base', 'small']:
     try:
         cached = Path(download_model(model, cache_dir=str(root / 'models'), local_files_only=True))

@@ -31,7 +31,7 @@ def rpc_json(content):
     raise ValueError('No MCP response received')
 
 
-def check(base, key=None):
+def check(base, key=None, voice_pack=False):
     headers = {'X-API-Key': key} if key else {}
     health = json.loads(request(base, '/health', headers=headers)[0])
     assert health['ok'] and health['voices'] > 0, health
@@ -40,6 +40,18 @@ def check(base, key=None):
     with wave.open(io.BytesIO(audio)) as wav:
         duration = wav.getnframes() / wav.getframerate()
         assert duration > 0
+    if voice_pack:
+        from download_models import ALL_VOICES
+        voices = json.loads(request(base, '/api/voices', headers=headers)[0])['voices']
+        installed = {v['id'] for v in voices}
+        assert set(ALL_VOICES) <= installed, 'Some default Piper voices are missing'
+        for voice, text in [('vieneu-doan_trang', 'Xin chào, bộ công cụ tạo giọng nói đã sẵn sàng.'),
+                            ('kokoro-bf_emma', 'The British English voice is ready.'),
+                            ('kokoro-am_michael', 'The American English voice is ready.')]:
+            assert voice in installed, f'Missing default preset: {voice}'
+            data = request(base, '/api/tts', {'voice': voice, 'text': text, 'format': 'wav'}, headers)[0]
+            with wave.open(io.BytesIO(data)) as wav:
+                assert wav.getnframes() / wav.getframerate() > .5
     init, init_headers = request(base, '/mcp', {
         'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
         'params': {'protocolVersion': '2025-06-18', 'capabilities': {},
@@ -59,17 +71,19 @@ def check(base, key=None):
     names = {tool['name'] for tool in tools['result']['tools']}
     assert {'list_voices', 'text_to_speech', 'transcribe'} <= names, names
     print(json.dumps({'health': 'ok', 'audio_seconds': round(duration, 2), 'mcp_server': server['name'],
-                      'mcp_tools': len(names), 'personal_clones': len(info['clones'])}, indent=2))
+                      'mcp_tools': len(names), 'personal_clones': len(info['clones']),
+                      'default_voice_pack': 'passed' if voice_pack else 'not requested'}, indent=2))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('url')
     parser.add_argument('--env-file', type=Path)
+    parser.add_argument('--voice-pack', action='store_true')
     args = parser.parse_args()
     key = None
     if args.env_file:
         sys.path.insert(0, str(Path(__file__).parent))
         from configure import read_env
         key = read_env(args.env_file).get('PIPER_API_KEY') or None
-    check(args.url, key)
+    check(args.url, key, args.voice_pack)

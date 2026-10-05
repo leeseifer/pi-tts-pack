@@ -10,7 +10,7 @@ HTTP_PORT="${PI_TTS_HTTP_PORT:-5051}"
 trap 'printf "\nTest stopped. Check: docker compose logs --tail 80\n" >&2' ERR
 printf 'Building and starting PI TTS Pack in Linux ARM64 on this computer.\n'
 docker compose up --build -d --wait --wait-timeout 1200
-printf '\nChecking real speech, MP3, MCP, transcription, and voice changing.\n'
+printf '\nChecking installed voice packs, real speech, MP3, MCP, transcription, and voice changing.\n'
 docker compose exec -T pi-tts-pack python scripts/check_container.py http://127.0.0.1:5050
 HOST_AUDIO_URL="$(docker compose exec -T pi-tts-pack python -c "import json; print(json.load(open('/data/test-results/results.json'))['host_audio_url'])")"
 printf '\nChecking cached models and saved audio after a container restart.\n'

@@ -5,7 +5,8 @@ set -Eeuo pipefail
 REPOSITORY="${PI_TTS_PACK_REPOSITORY:-https://github.com/leeseifer/pi-tts-pack.git}"
 INSTALL_DIR="${PI_TTS_PACK_DIR:-$HOME/pi-tts-pack}"
 FULL=0
-ALL_VOICES=0
+VOICE_PACK=1
+ALL_VOICES=1
 CHECK_ONLY=0
 HTTP_PORT=""
 HTTPS_PORT=""
@@ -13,11 +14,13 @@ HTTPS_PORT=""
 usage() {
   cat <<'HELP'
 PI TTS Pack — Easy to set up. Easy to use.
-Usage: bash install.sh [--full] [--all-voices] [--check]
+Usage: bash install.sh [--minimal] [--full] [--all-voices] [--check]
                        [--dir PATH] [--http-port PORT] [--https-port PORT]
-Default: English + Vietnamese Piper, Whisper base/small, web UI, and Claude MCP.
---full        Install optional VieNeu, Pocket, Kokoro, and Supertonic packages.
---all-voices  Download 21 voices from the upstream Piper catalog.
+Default: 21 Piper voices, Vietnamese VieNeu + UK/US Kokoro presets,
+         Whisper base/small, web UI, and Claude MCP. Models download during setup.
+--minimal     Only two Piper voices + Whisper; smaller download, no extra engines.
+--full        Also install Pocket and Supertonic packages and Supertonic presets.
+--all-voices  Download all 21 Piper voices (already enabled by default).
 --check       Check the host only; do not install or change anything.
 --https-port  Use 0 to disable the optional HTTPS listener.
 HELP
@@ -26,7 +29,8 @@ HELP
 while (($#)); do
   case "$1" in
     --help|-h) usage; exit 0 ;;
-    --full) FULL=1; shift ;;
+    --minimal) FULL=0; VOICE_PACK=0; ALL_VOICES=0; shift ;;
+    --full) FULL=1; VOICE_PACK=1; ALL_VOICES=1; shift ;;
     --all-voices) ALL_VOICES=1; shift ;;
     --check) CHECK_ONLY=1; shift ;;
     --dir) INSTALL_DIR="${2:?Missing path for --dir}"; shift 2 ;;
@@ -82,9 +86,13 @@ cd "$INSTALL_DIR"
 printf '\n[3/6] Installing Python packages\n'
 [[ -x .venv/bin/python ]] || python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip setuptools wheel
-if ((FULL)); then
+if ((VOICE_PACK)); then
   .venv/bin/python -m pip install 'torch==2.14.0+cpu' --index-url https://download.pytorch.org/whl/cpu
-  .venv/bin/python -m pip install -r requirements-pi5.txt --extra-index-url https://download.pytorch.org/whl/cpu
+  if ((FULL)); then
+    .venv/bin/python -m pip install -r requirements-pi5.txt --extra-index-url https://download.pytorch.org/whl/cpu
+  else
+    .venv/bin/python -m pip install -r requirements-voices.txt --extra-index-url https://download.pytorch.org/whl/cpu
+  fi
 else
   .venv/bin/python -m pip install -r requirements-core.txt
 fi
@@ -95,8 +103,9 @@ CONFIG_ARGS=()
 [[ -z "$HTTP_PORT" ]] || CONFIG_ARGS+=(--http-port "$HTTP_PORT")
 [[ -z "$HTTPS_PORT" ]] || CONFIG_ARGS+=(--https-port "$HTTPS_PORT")
 read -r HTTP_PORT HTTPS_PORT <<< "$(.venv/bin/python scripts/configure.py "$INSTALL_DIR" "${CONFIG_ARGS[@]}")"
-MODEL_ARGS=()
-((ALL_VOICES == 0)) || MODEL_ARGS+=(--all-voices)
+MODEL_ARGS=(--all-voices)
+((ALL_VOICES)) || MODEL_ARGS=(--minimal)
+((VOICE_PACK == 0)) || MODEL_ARGS+=(--voice-pack)
 ((FULL == 0)) || MODEL_ARGS+=(--full)
 .venv/bin/python scripts/download_models.py "$INSTALL_DIR" "${MODEL_ARGS[@]}"
 
@@ -119,7 +128,9 @@ if ((READY == 0)); then
   fail 'The service did not become ready. Check the log above.'
 fi
 printf '\n[6/6] Checking real audio and MCP\n'
-.venv/bin/python scripts/check_service.py "http://127.0.0.1:$HTTP_PORT" --env-file .env
+CHECK_ARGS=(--env-file .env)
+((VOICE_PACK == 0)) || CHECK_ARGS+=(--voice-pack)
+.venv/bin/python scripts/check_service.py "http://127.0.0.1:$HTTP_PORT" "${CHECK_ARGS[@]}"
 LAN_IP="$(hostname -I | awk '{print $1}')"
 LAN_IP="${LAN_IP:-127.0.0.1}"
 printf '\nReady!\nWeb UI: http://%s:%s\nMCP: http://%s:%s/mcp\n' "$LAN_IP" "$HTTP_PORT" "$LAN_IP" "$HTTP_PORT"

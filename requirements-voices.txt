@@ -1,0 +1,4 @@
+# Default ready-to-use voice pack: Piper, Vietnamese VieNeu and UK/US Kokoro.
+-r requirements-core.txt
+vieneu==3.8.3
+kokoro-onnx==0.6.1

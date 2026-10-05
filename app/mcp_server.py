@@ -73,7 +73,7 @@ def build_mcp(studio: Studio) -> MCPServer:
     @mcp.tool(structured_output=False)
     async def text_to_speech(text: str, voice: Optional[str] = None, speaker: Optional[str] = None,
                              speed: float = 1.0, format: str = "mp3", include_audio: bool = False):
-        """Convert text to speech with a Piper voice.
+        """Convert text to speech with any installed voice, including Piper, VieNeu and Kokoro presets.
 
         Args:
             text: what to say. Blank lines add a longer pause.
@@ -97,7 +97,7 @@ def build_mcp(studio: Studio) -> MCPServer:
                                make_video: bool = False, background_volume: float = 0.0,
                                whisper_model: Optional[str] = None, keep_original_voice: bool = False,
                                ctx: Optional[Context] = None) -> str:
-        """Re-speak an audio or video file with a different voice (Whisper transcription → Piper voice).
+        """Re-speak an audio or video file with any installed voice (Whisper transcription → chosen voice).
 
         Args:
             source: http(s) URL (direct file, or YouTube/TikTok/etc. page), a media_id / audio id from this

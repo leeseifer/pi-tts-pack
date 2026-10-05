@@ -4,7 +4,7 @@ Offline text-to-speech and voice changer on a Raspberry Pi 5, with a web UI, a R
 
 Installation: [PI5_SETUP.md](../PI5_SETUP.md). Performance figures in this reference were copied from the source deployment and have not been remeasured from the cleaned pack.
 
-- **Text → voice** with any of ~180 Piper voices (40+ languages; voices downloaded during setup)
+- **Text → voice** with 21 Piper voices, Vietnamese VieNeu presets, and UK/US Kokoro presets prepared during default setup. Additional Piper voices can be installed from the upstream catalog.
 - **Audio / Video → different voice**: Whisper transcribes the speech, Piper speaks it again. It can also
   translate to English, keep the original timing for dubbing, and return the video with the new voice.
 - **Phone-ready audio**: G.711 μ-law and A-law, 8/16 kHz PCM, raw `.ulaw`, real-time μ-law streaming,

@@ -12,7 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.
 
 Use a 64-bit Raspberry Pi OS/Debian/Ubuntu installation with Python 3.11–3.13, internet access, and a normal account with sudo. Python 3.11 on Bookworm matches the source Pi. The installer asks for sudo if needed, downloads models, starts the boot service, and checks real audio and MCP. Existing settings and recordings survive a reinstall.
 
-When it prints **Ready!**, open the **Web UI** address. Type your text, choose a voice, and press Generate. English and Vietnamese voices plus Whisper base/small are installed by default. If the default ports are occupied, it prints the alternatives it selected.
+When it prints **Ready!**, open the **Web UI** address. Type your text, choose a voice, and press Generate. The default setup downloads **74 voices: 21 Piper, 25 Vietnamese VieNeu, and 28 UK/US Kokoro presets**, plus Whisper base/small. It prepares the models and checks actual Vietnamese and UK/US speech before declaring setup ready. If the default ports are occupied, it prints the alternatives it selected.
 
 To test the pack on your **Mac** in a separate Linux ARM64 Docker container, follow [DOCKER_TEST.md](DOCKER_TEST.md). The Pi installer above remains Pi-only.
 
@@ -27,16 +27,17 @@ Try: **“Use PI TTS Pack to say Hello in English and return the audio.”**
 - Local text-to-speech in MP3, WAV, OGG, FLAC, and phone formats.
 - Audio/video transcription and voice changing.
 - Browser UI, REST API, and 11 MCP tools.
-- Optional VieNeu, Pocket TTS, Kokoro, and Supertonic engines, plus new voice cloning.
+- Vietnamese VieNeu and UK/US Kokoro voice packs ready after installation, plus new VieNeu voice cloning.
+- Optional Pocket TTS and Supertonic engines.
 - No saved personal clones, keys, or recordings in the public repository.
 
-For optional engines, run the same installer **on the Pi** with `--full`:
+For additional Pocket TTS and Supertonic engines, run the same installer **on the Pi** with `--full`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash -s -- --full
 ```
 
-Models for optional engines may download on first use; Pocket cloning may require your own model-access login. Add `--all-voices` to download 21 upstream Piper catalog voices.
+The default public voice models download automatically during setup; there is no manual voice-pack upload. Pocket models may download on first use, and Pocket cloning may require your own model-access login. For a smaller install with only two Piper voices and transcription, add `--minimal`. `--all-voices` remains accepted for compatibility; the 21-voice Piper pack is already the default.
 
 ## Help
 

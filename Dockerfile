@@ -1,6 +1,7 @@
 FROM python:3.11-slim-bookworm
 
 ARG FULL=0
+ARG VOICE_PACK=1
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/opt/pi-tts-pack \
@@ -12,7 +13,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TTS_CONCURRENCY=1 \
     HF_HOME=/data/huggingface \
     XDG_CACHE_HOME=/data/cache \
-    PI_TTS_PACK_FULL=${FULL}
+    PI_TTS_PACK_FULL=${FULL} \
+    PI_TTS_VOICE_PACK=${VOICE_PACK}
 
 WORKDIR /opt/pi-tts-pack
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,9 +23,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements*.txt ./
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && if [ "$FULL" = 1 ]; then \
+    && if [ "$FULL" = 1 ] || [ "$VOICE_PACK" = 1 ]; then \
          python -m pip install --no-cache-dir 'torch==2.14.0+cpu' --index-url https://download.pytorch.org/whl/cpu \
-         && python -m pip install --no-cache-dir -r requirements-pi5.txt --extra-index-url https://download.pytorch.org/whl/cpu; \
+         && if [ "$FULL" = 1 ]; then \
+              python -m pip install --no-cache-dir -r requirements-pi5.txt --extra-index-url https://download.pytorch.org/whl/cpu; \
+            else python -m pip install --no-cache-dir -r requirements-voices.txt --extra-index-url https://download.pytorch.org/whl/cpu; fi; \
        else python -m pip install --no-cache-dir -r requirements-core.txt; fi \
     && python -m pip check
 

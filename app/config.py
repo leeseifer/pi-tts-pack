@@ -4,7 +4,7 @@ import os
 import socket
 from pathlib import Path
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 BASE_DIR = Path(os.environ.get("PIPER_HOME") or Path(__file__).resolve().parent.parent)
 VOICES_DIR = BASE_DIR / "voices"

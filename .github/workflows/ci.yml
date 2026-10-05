@@ -25,7 +25,7 @@ jobs:
           PY
   arm64-one-command-install:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Install as a new user would
         run: |
@@ -39,7 +39,7 @@ jobs:
         run: sudo journalctl -u pi-tts-pack --no-pager -n 100
   arm64-docker-test:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Build, start, and test the ARM64 container
