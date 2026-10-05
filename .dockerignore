@@ -1,0 +1,13 @@
+# Only application code enters the image. Never send local models, recordings or keys.
+**
+!Dockerfile
+!requirements*.txt
+!LICENSE
+!app/
+!app/**
+!scripts/
+!scripts/**
+!docker/
+!docker/**
+**/__pycache__/
+**/*.pyc

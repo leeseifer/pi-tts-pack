@@ -27,3 +27,4 @@ PACK_INFO.json
 docs/CLEANUP.md
 .DS_Store
 *.log
+docker-test-results/

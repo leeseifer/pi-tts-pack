@@ -12,14 +12,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: bash -n install.sh deploy.sh
+      - run: bash -n install.sh deploy.sh docker-test.sh && sh -n docker/entrypoint.sh
       - run: python -m unittest discover -s tests -v
       - name: Check source syntax
         run: |
           python - <<'PY'
           import ast
           from pathlib import Path
-          for directory in ['app', 'scripts', 'n8n']:
+          for directory in ['app', 'scripts', 'n8n', 'docker']:
               for path in Path(directory).rglob('*.py'):
                   ast.parse(path.read_text(), filename=str(path))
           PY
@@ -37,3 +37,22 @@ jobs:
       - name: Collect service log
         if: always()
         run: sudo journalctl -u pi-tts-pack --no-pager -n 100
+  arm64-docker-test:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, start, and test the ARM64 container
+        run: bash docker-test.sh
+      - name: Collect container logs
+        if: always()
+        run: docker compose logs --tail 100
+      - name: Save test report and generated speech
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-audio-and-results
+          path: docker-test-results/
+      - name: Stop test container
+        if: always()
+        run: docker compose down

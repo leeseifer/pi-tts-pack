@@ -1,0 +1,23 @@
+name: pi-tts-pack-mac-test
+services:
+  pi-tts-pack:
+    image: pi-tts-pack:arm64-local
+    platform: linux/arm64
+    build:
+      context: .
+      args:
+        FULL: ${PI_TTS_PACK_FULL:-0}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PI_TTS_HTTP_PORT:-5051}:5050"
+    environment:
+      PUBLIC_BASE_URL: "http://localhost:${PI_TTS_HTTP_PORT:-5051}"
+      PIPER_API_KEY: ${PI_TTS_DOCKER_API_KEY:-}
+      PIPER_KEY_ON_LAN: ${PI_TTS_DOCKER_KEY_ON_LAN:-false}
+      PI_TTS_ALL_VOICES: ${PI_TTS_ALL_VOICES:-0}
+    volumes:
+      - tts-data:/data
+    stop_grace_period: 30s
+volumes:
+  tts-data:

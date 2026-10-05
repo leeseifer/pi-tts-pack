@@ -14,6 +14,8 @@ Use a 64-bit Raspberry Pi OS/Debian/Ubuntu installation with Python 3.11–3.13,
 
 When it prints **Ready!**, open the **Web UI** address. Type your text, choose a voice, and press Generate. English and Vietnamese voices plus Whisper base/small are installed by default. If the default ports are occupied, it prints the alternatives it selected.
 
+To test the pack on your **Mac** in a separate Linux ARM64 Docker container, follow [DOCKER_TEST.md](DOCKER_TEST.md). The Pi installer above remains Pi-only.
+
 ## Connect Claude MCP
 
 The installer starts the MCP server on your Pi and prints its address. After the Pi is ready, follow the separate [Claude connection guide](CLAUDE_MCP.md) for Claude Code or Claude Desktop.
@@ -38,7 +40,7 @@ Models for optional engines may download on first use; Pocket cloning may requir
 
 ## Help
 
-[Pi setup and options](PI5_SETUP.md) · [Claude MCP](CLAUDE_MCP.md) · [API reference](docs/API.md) · [Optional n8n](n8n/README.md) · [Credits](docs/CREDITS.md)
+[Pi setup and options](PI5_SETUP.md) · [Mac Docker test](DOCKER_TEST.md) · [Claude MCP](CLAUDE_MCP.md) · [API reference](docs/API.md) · [Optional n8n](n8n/README.md) · [Credits](docs/CREDITS.md)
 
 Run service commands on the Pi:
 
