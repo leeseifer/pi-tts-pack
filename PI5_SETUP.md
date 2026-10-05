@@ -22,6 +22,8 @@ Allow 10–12 GB free for installation and download workspace, plus space for yo
 2. Type or paste text and choose a voice.
 3. Press Generate, play the result, or download it.
 
+To add voices, press **+ More voices**, choose a language or search for a name, tick your choices, and press **Install selected**. Installed presets also appear there with a **Use voice** button. After download, the new voice is selected and any studio filters that hid it are cleared.
+
 For audio/video, upload a file and choose transcription or another voice. For a microphone, use the printed HTTPS address and grant browser microphone permission after handling the local self-signed certificate.
 
 The MCP server runs on the Pi. Once installation is complete, use the separate [Claude connection guide](CLAUDE_MCP.md) to connect your Claude app to the printed MCP address.

@@ -226,6 +226,18 @@ dialog::backdrop { background: rgba(10,12,20,.45); backdrop-filter: blur(2px); }
 .cat-row:last-child { border-bottom: 0; }
 .cat-id { font-weight: 600; font-size: 14px; }
 .cat-meta { font-size: 12px; color: var(--muted); }
+#dlgCatalog[open] { display: flex; flex-direction: column; height: min(760px, calc(100vh - 40px)); }
+#dlgCatalog .dlg-head, .cat-tools, .cat-footer { flex-shrink: 0; }
+#dlgCatalog .dlg-body { flex: 1; min-height: 0; max-height: none; }
+#dlgCatalog .cat-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
+.cat-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+.cat-tools input { flex: 2; min-width: 180px; }
+.cat-tools select { flex: 1; min-width: 140px; }
+.cat-footer { padding: 12px 18px; border-top: 1px solid var(--border); }
+.cat-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.cat-footer .row { margin-top: 8px; }
+#catStatus { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 560px) { #dlgCatalog .cat-row { grid-template-columns: 24px minmax(0, 1fr); } .cat-actions { grid-column: 2; justify-content: flex-start; } }
 
 #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: all .2s; pointer-events: none; z-index: 100; max-width: calc(100vw - 32px); }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -421,13 +433,21 @@ dialog::backdrop { background: rgba(10,12,20,.45); backdrop-filter: blur(2px); }
   </aside>
 </main>
 
-<dialog id="dlgCatalog">
+<dialog id="dlgCatalog" aria-labelledby="catTitle">
   <div class="dlg-head">
-    <h2>Install more voices</h2><span class="spacer"></span>
-    <input type="search" id="catSearch" placeholder="Filter: vi, English, de_DE…" style="width:220px">
-    <button class="btn ghost sm" data-close>✕</button>
+    <h2 id="catTitle">Browse &amp; install voices</h2><span class="spacer"></span>
+    <button class="btn ghost sm" data-close aria-label="Close voice catalog">✕</button>
+  </div>
+  <div class="cat-tools">
+    <input type="search" id="catSearch" placeholder="Search name or language…" aria-label="Search voice catalog">
+    <select id="catLanguage" aria-label="Catalog language"><option value="">All languages</option></select>
+    <select id="catAvailability" aria-label="Voice availability"><option value="">All voices</option><option value="available">Available to install</option><option value="installed">Already installed</option><option value="selected">Selected voices</option></select>
   </div>
   <div class="dlg-body" id="catBody"><div class="empty">Loading catalog…</div></div>
+  <div class="cat-footer">
+    <div id="catStatus" role="status">Choose voices to download. Installed voices are ready to use.</div>
+    <div class="row"><span id="catSelection">No voices selected</span><span class="spacer"></span><button class="btn sm" id="catClear" disabled>Clear selection</button><button class="btn primary sm" id="catInstall" disabled>Install selected</button></div>
+  </div>
 </dialog>
 
 <dialog id="dlgClone">
@@ -723,34 +743,81 @@ S.preview.audio.addEventListener("error", () => { if (S.preview.btn) { resetPrev
 
 /* ---------- catalog ---------- */
 let CATALOG = null;
+const CATALOG_SELECTED = new Set();
+let CATALOG_BUSY = false;
+function catalogVoices() {
+  const voices = new Map((CATALOG || []).map((v) => [v.id, { ...v, engine: "piper", kind: "piper", installed: false }]));
+  S.voices.forEach((v) => voices.set(v.id, { ...voices.get(v.id), ...v, installed: true }));
+  return [...voices.values()];
+}
 async function openCatalog() {
+  if ($("#catAvailability").value === "selected" && !CATALOG_SELECTED.size) $("#catAvailability").value = "";
   $("#dlgCatalog").showModal();
-  if (!CATALOG) {
-    try { CATALOG = (await api("/api/voices/catalog")).voices; }
-    catch (e) { $("#catBody").innerHTML = `<div class="empty">Could not load the catalog: ${esc(e.message)}</div>`; return; }
+  try {
+    await loadVoices();
+    if (!CATALOG) CATALOG = (await api("/api/voices/catalog")).voices;
+  } catch (e) {
+    $("#catBody").innerHTML = `<div class="empty">Could not load the catalog: ${esc(e.message)} <button class="link" id="catRetry">Retry</button></div>`;
+    return;
   }
   renderCatalog();
   $("#catSearch").focus();
 }
-function renderCatalog() {
-  const q = $("#catSearch").value.trim().toLowerCase().replace("-", "_");
-  const installed = new Set(S.voices.map((v) => v.id));
-  const rows = CATALOG.filter((v) => !q || (q.length <= 3 && !q.includes(" ")
-    ? v.id.toLowerCase().startsWith(q)
-    : `${v.id} ${v.language_name} ${v.country} ${v.language_native}`.toLowerCase().includes(q)));
-  $("#catBody").innerHTML = rows.length ? rows.map((v) => `
-    <div class="cat-row">
-      <div><div class="cat-id">${esc(v.name)} <span class="muted small">${esc(v.id)}</span></div>
-      <div class="cat-meta">${esc(v.language_name)}${v.country ? " · " + esc(v.country) : ""} · ${esc(v.quality)} · ${v.size_mb} MB${v.num_speakers > 1 ? ` · ${v.num_speakers} speakers` : ""}</div></div>
-      ${installed.has(v.id) ? `<span class="badge q-high">Installed ✓</span>` : `<button class="btn sm" data-install="${esc(v.id)}">Install</button>`}
-    </div>`).join("") : `<div class="empty">No voices match “${esc(q)}”.</div>`;
+function catalogText(value) {
+  return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[-_]/g, " ");
 }
-async function installVoice(id, btn) {
-  btn.disabled = true; btn.textContent = "Downloading…";
+function renderCatalog() {
+  const all = catalogVoices(), language = $("#catLanguage"), keep = language.value;
+  const counts = {};
+  all.forEach((v) => { counts[v.language] = counts[v.language] || { n: 0, label: langLabel(v) }; counts[v.language].n++; if (v.installed) CATALOG_SELECTED.delete(v.id); });
+  language.innerHTML = `<option value="">All languages (${all.length})</option>` + Object.entries(counts).sort((a, b) => a[1].label.localeCompare(b[1].label)).map(([code, c]) => `<option value="${esc(code)}">${esc(c.label)} (${c.n})</option>`).join("");
+  language.value = counts[keep] ? keep : "";
+  const terms = catalogText($("#catSearch").value).trim().split(/\s+/).filter(Boolean), availability = $("#catAvailability").value;
+  const rows = all.filter((v) => (!language.value || v.language === language.value) &&
+    (!availability || (availability === "selected" ? CATALOG_SELECTED.has(v.id) : availability === "installed" ? v.installed : !v.installed)) &&
+    terms.every((term) => catalogText(`${v.name} ${v.id} ${v.language_name} ${v.country} ${v.language_native} ${v.quality} ${ENGINE_LABEL[v.engine]} ${v.description || ""}`).includes(term)));
+  $("#catBody").innerHTML = rows.length ? rows.map((v) => `
+    <div class="cat-row" role="group" aria-label="${esc(v.id)}">
+      ${v.installed ? `<span aria-hidden="true" style="color:var(--ok)">✓</span>` : `<input type="checkbox" data-select="${esc(v.id)}" aria-label="Select ${esc(v.name)} (${esc(v.id)})" ${CATALOG_SELECTED.has(v.id) ? "checked" : ""} ${CATALOG_BUSY ? "disabled" : ""}>`}
+      <div><div class="cat-id">${esc(v.name)} <span class="muted small">${esc(v.id)}</span></div>
+      <div class="cat-meta">${esc(v.language_name)}${v.country ? " · " + esc(v.country) : ""} · ${esc(ENGINE_LABEL[v.engine] || v.engine)} · ${esc(v.quality)}${v.size_mb ? ` · ${v.size_mb} MB` : ""}${v.num_speakers > 1 ? ` · ${v.num_speakers} speakers` : ""}</div></div>
+      <div class="cat-actions">${v.installed ? `<span class="badge q-high">Installed</span><button class="btn sm" data-use="${esc(v.id)}" aria-label="Use ${esc(v.name)} (${esc(v.id)})" ${CATALOG_BUSY ? "disabled" : ""}>Use voice</button>` : `<button class="btn sm" data-install="${esc(v.id)}" aria-label="Install ${esc(v.name)} (${esc(v.id)})" ${CATALOG_BUSY ? "disabled" : ""}>Install</button>`}</div>
+    </div>`).join("") : `<div class="empty">No voices match these filters. <button class="link" id="catReset">Show all voices</button>.</div>`;
+  if (!CATALOG_BUSY) $("#catStatus").textContent = `${rows.length} shown · ${all.filter((v) => !v.installed).length} available to install · ${all.filter((v) => v.installed).length} installed. Choose voices below, or use one you already have.`;
+  updateCatalogSelection();
+}
+function updateCatalogSelection() {
+  const selected = catalogVoices().filter((v) => CATALOG_SELECTED.has(v.id) && !v.installed);
+  $("#catSelection").textContent = selected.length ? `${selected.length} selected · ${Math.round(selected.reduce((sum, v) => sum + (v.size_mb || 0), 0))} MB download` : "No voices selected";
+  $("#catClear").disabled = CATALOG_BUSY || !selected.length;
+  $("#catInstall").disabled = CATALOG_BUSY || !selected.length;
+  $("#catInstall").textContent = CATALOG_BUSY ? "Installing…" : `Install selected${selected.length ? ` (${selected.length})` : ""}`;
+}
+function useCatalogVoice(id) {
+  resetVoiceFilters(); selectVoice(id); $("#dlgCatalog").close();
+  [...$("#voiceList").querySelectorAll(".voice")].find((v) => v.dataset.id === id)?.scrollIntoView({ block: "nearest" });
+}
+async function installCatalogVoices(ids) {
+  if (CATALOG_BUSY) return;
+  const available = new Set(catalogVoices().filter((v) => !v.installed).map((v) => v.id));
+  ids = ids.filter((id) => available.has(id));
+  if (!ids.length) return;
+  ids.forEach((id) => CATALOG_SELECTED.add(id));
+  CATALOG_BUSY = true; renderCatalog();
+  let last = null, completed = 0;
   try {
-    await api("/api/voices/install", { method: "POST", json: { voice: id } });
-    await loadVoices(); renderCatalog(); toast(`Installed ${id}`); refreshStatus();
-  } catch (e) { btn.disabled = false; btn.textContent = "Install"; toast(e.message, true); }
+    for (const id of ids) {
+      $("#catStatus").textContent = `Installing ${completed + 1} of ${ids.length}: ${id}. Keep this page open while the voice downloads.`;
+      await api("/api/voices/install", { method: "POST", json: { voice: id } });
+      CATALOG_SELECTED.delete(id); last = id; completed++;
+      await loadVoices(); renderCatalog();
+    }
+    CATALOG_BUSY = false; renderCatalog(); refreshStatus(); useCatalogVoice(last);
+    toast(`Installed ${completed} voice${completed === 1 ? "" : "s"}. Your new voice is selected.`);
+  } catch (e) {
+    CATALOG_BUSY = false; renderCatalog(); refreshStatus();
+    $("#catStatus").textContent = `${completed} installed. Download stopped: ${e.message}. Select Install selected to retry the remaining voices.`;
+  }
 }
 
 /* ---------- media ---------- */
@@ -1260,7 +1327,17 @@ function wire() {
     }
   });
   $("#catSearch").oninput = () => CATALOG && renderCatalog();
-  $("#catBody").addEventListener("click", (e) => { const b = e.target.closest("[data-install]"); if (b) installVoice(b.dataset.install, b); });
+  $("#catLanguage").onchange = $("#catAvailability").onchange = () => CATALOG && renderCatalog();
+  $("#catBody").addEventListener("change", (e) => { const checkbox = e.target.closest("[data-select]"); if (!checkbox || CATALOG_BUSY) return; checkbox.checked ? CATALOG_SELECTED.add(checkbox.dataset.select) : CATALOG_SELECTED.delete(checkbox.dataset.select); $("#catAvailability").value === "selected" ? renderCatalog() : updateCatalogSelection(); });
+  $("#catBody").addEventListener("click", (e) => {
+    const install = e.target.closest("[data-install]"), use = e.target.closest("[data-use]");
+    if (install) return installCatalogVoices([install.dataset.install]);
+    if (use) return useCatalogVoice(use.dataset.use);
+    if (e.target.closest("#catReset")) { $("#catSearch").value = ""; $("#catLanguage").value = ""; $("#catAvailability").value = ""; renderCatalog(); }
+    if (e.target.closest("#catRetry")) { $("#dlgCatalog").close(); openCatalog(); }
+  });
+  $("#catClear").onclick = () => { CATALOG_SELECTED.clear(); renderCatalog(); };
+  $("#catInstall").onclick = () => installCatalogVoices([...CATALOG_SELECTED]);
 
   // tune
   const outs = { speed: (x) => x + "×", noise: (x) => x, noisew: (x) => x, pause: (x) => x + "s", volume: (x) => Math.round(x * 100) + "%" };

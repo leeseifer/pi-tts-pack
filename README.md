@@ -16,6 +16,8 @@ When it prints **Ready!**, open the **Web UI** address. Type your text, choose a
 
 To test the pack on your **Mac** in a separate Linux ARM64 Docker container, follow [DOCKER_TEST.md](DOCKER_TEST.md). The Pi installer above remains Pi-only.
 
+For additional voices, open **+ More voices**. Search by name or choose a language, tick the voices you want, and press **Install selected**. Downloads show progress and size; when complete, the new voice is selected and the studio's filters are cleared so it is visible. The browser also lists the installed VieNeu and Kokoro presets: press **Use voice** to select one without downloading it again.
+
 ## Connect Claude MCP
 
 The installer starts the MCP server on your Pi and prints its address. After the Pi is ready, follow the separate [Claude connection guide](CLAUDE_MCP.md) for Claude Code or Claude Desktop.
