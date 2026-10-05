@@ -1,6 +1,8 @@
 # Connect PI TTS Pack to Claude
 
-Install the pack first and use the **MCP address printed by the installer**. Examples below use `http://PI_IP:5050/mcp`; substitute your address and selected port. Your computer must be able to reach the Pi.
+First, [install the pack on your Raspberry Pi](PI5_SETUP.md). The install command runs in the Pi's terminal or an SSH session connected to it.
+
+This separate guide connects your Claude app to the service already running on the Pi. Use the **MCP address printed by the installer**. Examples below use `http://PI_IP:5050/mcp`; substitute your address and selected port. Your Claude client must be able to reach the Pi.
 
 ## Claude Code: one command
 

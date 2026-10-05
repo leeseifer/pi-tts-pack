@@ -1,8 +1,10 @@
-# PI TTS Pack: setup and everyday use
+# PI TTS Pack: Raspberry Pi 5 setup
 
-## Install
+**All commands in this guide run on the Raspberry Pi.** Use the Pi's own terminal or an SSH session connected to the Pi. Do not run these commands in your Mac's local terminal.
 
-On a 64-bit Pi 5 with internet, Python 3.11–3.13, and sudo access:
+## Install with one command
+
+On your Pi 5, use a 64-bit Raspberry Pi OS/Debian/Ubuntu installation with internet, Python 3.11–3.13, and a normal account with sudo access. Paste this one command into the Pi terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/leeseifer/pi-tts-pack/main/install.sh | bash
@@ -22,11 +24,11 @@ Allow approximately 3 GB free for a starter install, with additional space for r
 
 For audio/video, upload a file and choose transcription or another voice. For a microphone, use the printed HTTPS address and grant browser microphone permission after handling the local self-signed certificate.
 
-Connect Claude using [CLAUDE_MCP.md](CLAUDE_MCP.md).
+The MCP server runs on the Pi. Once installation is complete, use the separate [Claude connection guide](CLAUDE_MCP.md) to connect your Claude app to the printed MCP address.
 
 ## Optional installer flags
 
-Append flags after `bash -s --`. Each example is still one command.
+Run these on the Pi too. Append flags after `bash -s --`. Each example is still one command.
 
 ```bash
 # Optional voice engines; the first use may download their models.
@@ -79,7 +81,7 @@ sudo systemctl disable --now pi-tts-pack
 
 | Problem | Action |
 |---|---|
-| Installer says unsupported system | Run on Linux ARM64 with Python 3.11–3.13 and apt-get. |
+| Installer says unsupported system | Run the command in the Pi's terminal or an SSH session connected to the Pi. The Pi needs Linux ARM64, Python 3.11–3.13, and apt-get. |
 | Package download fails | Check internet and free disk space; rerun the installer. |
 | Destination already exists | Choose an empty directory with `--dir`. |
 | Service cannot start | Read `journalctl -u pi-tts-pack -n 80`; check configured ports. |
